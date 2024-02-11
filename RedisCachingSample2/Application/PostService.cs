@@ -1,4 +1,5 @@
-﻿using RedisCachingSample2.Extensions;
+﻿using Microsoft.Extensions.Hosting;
+using RedisCachingSample2.Extensions;
 using RedisCachingSample2.Infrastructure.Configuration;
 using RedisCachingSample2.Infrastructure.Entities;
 using RedisCachingSample2.Infrastructure.Repository;
@@ -24,11 +25,14 @@ namespace RedisCachingSample2.Application
                 var getResult = _crudRepo.GetAll();
 
                 //Add Data to Cache
-                lock (_lock)
+                if(getResult.Result.Data is not null)
                 {
-                    foreach(var post in getResult.Result.Data)
+                    lock (_lock)
                     {
-                        _cacheService.SetPost("posts", post);
+                        foreach (var post in getResult.Result.Data)
+                        {
+                            _cacheService.SetPost("posts", post);
+                        }
                     }
                 }
 
@@ -54,6 +58,15 @@ namespace RedisCachingSample2.Application
             try
             {
                 var getResult = _crudRepo.Get(postId);
+
+                //Add Data to Cache
+                if(getResult.Result.Data is not null)
+                {
+                    lock (_lock)
+                    {
+                        _cacheService.SetPost("posts", getResult.Result.Data);
+                    }
+                }
 
                 return await Task.FromResult(new ApiResponse<Post>
                 {
